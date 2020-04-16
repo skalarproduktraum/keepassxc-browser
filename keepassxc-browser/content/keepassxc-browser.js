@@ -1453,13 +1453,12 @@ kpxc.fillIn = function(combination, onlyPassword, suppressWarnings) {
     }
 
     let skipAutoSubmit = false;
+    let filledIn = false;
     const uField = _f(combination.username);
     const pField = _f(combination.password);
 
     // Exactly one pair of credentials available
     if (kpxc.credentials.length === 1) {
-        let filledIn = false;
-
         if (kpxc.credentials[0].skipAutoSubmit !== undefined) {
             skipAutoSubmit = kpxc.credentials[0].skipAutoSubmit === 'true';
         }
@@ -1496,8 +1495,6 @@ kpxc.fillIn = function(combination, onlyPassword, suppressWarnings) {
         }
     } else if (combination.loginId !== undefined && kpxc.credentials[combination.loginId]) {
         // Specific login ID given
-        let filledIn = false;
-
         if (kpxc.credentials[0].skipAutoSubmit !== undefined) {
             skipAutoSubmit = kpxc.credentials[combination.loginId].skipAutoSubmit === 'true';
         }
@@ -1565,12 +1562,14 @@ kpxc.fillIn = function(combination, onlyPassword, suppressWarnings) {
             if (countPasswords === 1) {
                 if (!onlyPassword) {
                     kpxc.setValueWithChange(uField, valUsername);
+                    filledIn = true;
                 }
 
                 if (pField) {
                     kpxc.setValueWithChange(pField, valPassword);
                     pField.setAttribute('unchanged', true);
                     kpxc.setPasswordFilled(true);
+                    filledIn = true;
                 }
 
                 const list = [];
@@ -1616,6 +1615,21 @@ kpxc.fillIn = function(combination, onlyPassword, suppressWarnings) {
                 target.focus();
                 return;
             }
+        }
+    }
+
+    // Dispatch a keydown event to page script to simulate an user interaction
+    if (filledIn) {
+        const ev = new KeyboardEvent('keydown', {
+            bubbles: true, cancelable: false, key: '', char: ''
+        });
+
+        if (uField) {
+            uField.dispatchEvent(ev);
+        }
+
+        if (pField) {
+            pField.dispatchEvent(ev);
         }
     }
 
