@@ -23,6 +23,7 @@ keepass.keyBody = 'keepassxc-browser-key';
 keepass.messageTimeout = 500; // Milliseconds
 keepass.nonce = nacl.util.encodeBase64(nacl.randomBytes(keepass.keySize));
 keepass.reconnectLoop = null;
+keepass.isSafari = isSafari();
 
 const kpActions = {
     SET_LOGIN: 'set-login',
@@ -136,7 +137,7 @@ keepass.sendNativeMessage = function(request, enableTimeout = false, timeoutValu
         const messageTimeout = timeoutValue || keepass.messageTimeout;
 
         // Handle timeouts
-        if (enableTimeout) {
+        if (!keepass.isSafari && enableTimeout) {
             timeout = setTimeout(() => {
                 const errorMessage = {
                     action: requestAction,
@@ -154,7 +155,11 @@ keepass.sendNativeMessage = function(request, enableTimeout = false, timeoutValu
 
         // Send the request
         if (keepass.nativePort) {
-            keepass.nativePort.postMessage(request);
+            if (keepass.isSafari) {
+                browser.runtime.sendNativeMessage(keepass.nativeHostName, { message: request });
+            } else {
+                keepass.nativePort.postMessage(request);
+            }
         }
     });
 };
@@ -1007,7 +1012,7 @@ keepass.connectToNative = function() {
 };
 
 keepass.onNativeMessage = function(response) {
-    //console.log('Received message: ' + JSON.stringify(response));
+    console.log('Received message: ' + JSON.stringify(response));
 
     // Handle database lock/unlock status
     if (response.action === kpActions.DATABASE_LOCKED || response.action === kpActions.DATABASE_UNLOCKED) {
